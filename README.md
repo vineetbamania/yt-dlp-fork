@@ -42,29 +42,34 @@ Safari → Share → **Add to Home Screen**. This:
 
 ## Scripts
 
-| Command                | What                                                 |
-| ---------------------- | ---------------------------------------------------- |
-| `npm run setup`        | Run dep-check, then `npm install`                    |
-| `npm run check-deps`   | Verify yt-dlp / ffmpeg / deno are installed          |
-| `npm run update-ytdlp` | Update yt-dlp (auto-detects brew vs. self-installed) |
-| `npm run dev`          | API + static, watch mode                             |
-| `npm start`            | Production-mode                                      |
-| `npm run build`        | Compile `api/` to `api/dist/`                        |
-| `npm run lint`         | ESLint + Prettier check                              |
-| `npm run format`       | Prettier write all files                             |
-| `npm run typecheck`    | `tsc --noEmit`                                       |
-| `npm test`             | Unit tests (Jest)                                    |
-| `npm run test:e2e`     | End-to-end tests (mocked yt-dlp)                     |
+| Command                   | What                                                 |
+| ------------------------- | ---------------------------------------------------- |
+| `npm run setup`           | Run dep-check, then `npm install`                    |
+| `npm run check-deps`      | Verify yt-dlp / ffmpeg / deno are installed          |
+| `npm run update-ytdlp`    | Update yt-dlp (auto-detects brew vs. self-installed) |
+| `npm run dev`             | API + static, watch mode                             |
+| `npm start`               | Production-mode                                      |
+| `npm run build`           | Compile `api/` to `api/dist/`                        |
+| `npm run lint`            | ESLint + Prettier check                              |
+| `npm run format`          | Prettier write all files                             |
+| `npm run typecheck`       | `tsc --noEmit`                                       |
+| `npm test`                | Unit tests (Jest)                                    |
+| `npm run test:e2e`        | End-to-end tests (mocked yt-dlp)                     |
+| `npm run issue-tls`       | Issue a Tailscale TLS cert for this Mac              |
+| `npm run install-agent`   | Install the launchd agent (auto-start on login)      |
+| `npm run uninstall-agent` | Remove the launchd agent                             |
 
 ## Configuration
 
-| Env var      | Default                    | Purpose                                                        |
-| ------------ | -------------------------- | -------------------------------------------------------------- |
-| `AUTH_TOKEN` | _(required, min 32 chars)_ | Bearer token for the API and the SPA                           |
-| `PORT`       | `8787`                     | HTTP port                                                      |
-| `TMP_DIR`    | `./tmp`                    | Working dir for per-job downloads (auto-created, auto-cleaned) |
-| `NODE_ENV`   | `development`              | `production` hides Swagger UI                                  |
-| `LOG_LEVEL`  | `info`                     | `fatal` / `error` / `warn` / `info` / `debug` / `trace`        |
+| Env var         | Default                    | Purpose                                                        |
+| --------------- | -------------------------- | -------------------------------------------------------------- |
+| `AUTH_TOKEN`    | _(required, min 32 chars)_ | Bearer token for the API and the SPA                           |
+| `PORT`          | `8787`                     | HTTP(S) port                                                   |
+| `TMP_DIR`       | `./tmp`                    | Working dir for per-job downloads (auto-created, auto-cleaned) |
+| `NODE_ENV`      | `development`              | `production` hides Swagger UI                                  |
+| `LOG_LEVEL`     | `info`                     | `fatal` / `error` / `warn` / `info` / `debug` / `trace`        |
+| `TLS_CERT_PATH` | _(unset)_                  | When set with `TLS_KEY_PATH`, the API listens HTTPS instead    |
+| `TLS_KEY_PATH`  | _(unset)_                  | Pair with `TLS_CERT_PATH`; populated by `npm run issue-tls`    |
 
 ## API
 
@@ -79,6 +84,42 @@ When `NODE_ENV !== production`, interactive Swagger UI is at `http://localhost:8
 | `GET`  | `/health`            | Bearer | Uptime ping                          |
 
 See [docs/architecture.md](docs/architecture.md) for the request lifecycle, job state machine, and security model.
+
+## Production: TLS + auto-start
+
+For day-to-day use you'll want the API to start on login (so the iPhone shortcut just works) and serve HTTPS (so iOS Safari is happy and PWA features unlock). Both are scripted.
+
+### 1. Issue a TLS cert
+
+Prerequisites: Tailscale running, you're logged in, and HTTPS certificates are enabled in the [admin console](https://login.tailscale.com/admin/dns) (`DNS → HTTPS Certificates`).
+
+```sh
+npm run issue-tls
+```
+
+This runs `tailscale cert` against your Mac's tailnet hostname and drops `.crt`/`.key` files into `.tls/` (gitignored). It prints the two env vars you need; paste them into `.env`. Re-run every ~90 days; Tailscale certs expire.
+
+### 2. Install the launchd agent
+
+```sh
+npm run build           # produce api/dist/
+npm run install-agent   # write ~/Library/LaunchAgents/com.yt-dlp-fork.api.plist + load it
+```
+
+The script reads `TLS_CERT_PATH` / `TLS_KEY_PATH` from `.env` and bakes them into the plist so HTTPS works without re-sourcing. Logs go to `~/Library/Logs/yt-dlp-fork/`.
+
+To stop/uninstall:
+
+```sh
+npm run uninstall-agent
+```
+
+### Renewing the cert later
+
+```sh
+npm run issue-tls            # writes new cert/key on top of the old paths
+launchctl kickstart -k gui/$(id -u)/com.yt-dlp-fork.api   # restart so node re-reads
+```
 
 ## Troubleshooting
 

@@ -8,6 +8,11 @@ export const envSchema = z.object({
     .min(32, 'AUTH_TOKEN must be at least 32 chars. Generate with: openssl rand -hex 32'),
   TMP_DIR: z.string().min(1).default('./tmp'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  // Optional TLS via tailscale-issued cert. If either is unset, the
+  // server listens HTTP. main.ts reads these directly from process.env
+  // so we don't need to thread them through ConfigService.
+  TLS_CERT_PATH: z.string().optional(),
+  TLS_KEY_PATH: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
