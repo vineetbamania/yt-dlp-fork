@@ -1,14 +1,25 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
 import type { Env } from '../config/env';
+import { IS_PUBLIC_KEY } from './public.decorator';
 
 @Injectable()
 export class BearerAuthGuard implements CanActivate {
-  constructor(private readonly config: ConfigService<Env, true>) {}
+  constructor(
+    private readonly config: ConfigService<Env, true>,
+    private readonly reflector: Reflector,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const req = context.switchToHttp().getRequest<Request>();
     const header = req.headers.authorization;
 

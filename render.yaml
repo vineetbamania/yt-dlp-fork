@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: yt-dlp-fork
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: TMP_DIR
+        value: /tmp/yt-dlp-fork
+      - key: AUTH_TOKEN
+        sync: false # set in the Render dashboard; never commit
+      # Uncomment + set if you'll call the API from a separate
+      # frontend host (CORS allowlist):
+      # - key: CORS_ORIGINS
+      #   value: https://your-frontend.example.com

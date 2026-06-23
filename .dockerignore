@@ -1,0 +1,36 @@
+# Source control and CI artefacts
+.git
+.github
+.husky
+.gitignore
+
+# Editor / tool state
+.vscode
+.idea
+.claude
+
+# Local build / runtime artefacts
+**/node_modules
+**/dist
+**/coverage
+tmp
+*.log
+
+# Secrets and certs (never bake into image)
+.env
+.env.*
+!.env.example
+.tls
+
+# Local-only Mac ops
+scripts/install-launchd.sh
+scripts/uninstall-launchd.sh
+scripts/issue-tls.sh
+
+# Docs (image doesn't need them)
+docs
+README.md
+LICENSE
+
+# OS junk
+.DS_Store

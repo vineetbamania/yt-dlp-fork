@@ -133,4 +133,23 @@ describe('Convert API (e2e)', () => {
         });
     });
   });
+
+  describe('health probes', () => {
+    it('/health requires bearer token', async () => {
+      await request(app.getHttpServer()).get('/health').expect(401);
+      await request(app.getHttpServer())
+        .get('/health')
+        .set('Authorization', `Bearer ${TOKEN}`)
+        .expect(200);
+    });
+
+    it('/healthz is public (for platform health checks)', async () => {
+      await request(app.getHttpServer())
+        .get('/healthz')
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toEqual({ status: 'ok' });
+        });
+    });
+  });
 });
