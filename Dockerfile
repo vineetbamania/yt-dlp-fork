@@ -65,12 +65,15 @@ ENV NODE_ENV=production
 ENV TMP_DIR=/tmp/yt-dlp-fork
 ENV PORT=8787
 
-# Copy built artifacts + pruned deps + static frontend.
+# Copy built artifacts + pruned deps from the builder.
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/api/package.json ./api/package.json
 COPY --from=builder /app/api/dist ./api/dist
-COPY --from=builder /app/web ./web
+
+# Static frontend doesn't need any build step, so pull it directly from
+# the build context (avoids having to also copy it into the builder stage).
+COPY web ./web
 
 # Render mounts an ephemeral filesystem; making the dir explicit so it's
 # present at boot and visible under `docker exec`.
