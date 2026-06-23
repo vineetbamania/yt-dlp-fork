@@ -121,6 +121,22 @@ npm run issue-tls            # writes new cert/key on top of the old paths
 launchctl kickstart -k gui/$(id -u)/com.yt-dlp-fork.api   # restart so node re-reads
 ```
 
+## Optional: host the frontend separately
+
+If you want to serve `web/` from a static host (Netlify, Cloudflare Pages, Vercel, S3, etc.) instead of the Mac, the SPA supports it out of the box. On first visit, the auth gate asks for an **API base URL** alongside the token; both are stored in `localStorage`. Every API call uses the stored base URL, so the frontend works from any origin.
+
+The API needs two things to accept the cross-origin calls:
+
+1. **HTTPS** — browsers block mixed content from an `https://` page to an `http://` API. `npm run issue-tls` gives you a Tailscale-issued cert.
+2. **CORS allowlist** — set `CORS_ORIGINS` in `.env` to the frontend's origin (comma-separated if you have multiple).
+
+```sh
+# .env
+CORS_ORIGINS=https://your-frontend-host.example.com
+```
+
+The API stays bearer-gated regardless of origin; nothing converts without the token, and nothing reaches the Mac without Tailscale.
+
 ## Troubleshooting
 
 **`spawn yt-dlp ENOENT`** — yt-dlp isn't on `PATH`. Run `npm run check-deps`, then `brew install yt-dlp ffmpeg deno`.

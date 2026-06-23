@@ -1,10 +1,12 @@
 const TOKEN_KEY = 'yt-dlp-fork.token';
+const API_BASE_KEY = 'yt-dlp-fork.apiBase';
 
 const $ = (id) => document.getElementById(id);
 const els = {
   app: $('app'),
   authGate: $('auth-gate'),
   tokenForm: $('token-form'),
+  apiBaseInput: $('api-base'),
   tokenInput: $('token'),
   forgetToken: $('forget-token'),
   convertForm: $('convert-form'),
@@ -33,6 +35,23 @@ function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+function getApiBase() {
+  return localStorage.getItem(API_BASE_KEY) || window.location.origin;
+}
+
+function setApiBase(b) {
+  localStorage.setItem(API_BASE_KEY, b);
+}
+
+function clearApiBase() {
+  localStorage.removeItem(API_BASE_KEY);
+}
+
+function apiUrl(path) {
+  const base = getApiBase().replace(/\/$/, '');
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 function show(el) {
   el.hidden = false;
 }
@@ -56,7 +75,7 @@ function authHeaders() {
 }
 
 async function postJson(path, body) {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: 'POST',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -79,7 +98,7 @@ async function postJson(path, body) {
 }
 
 async function* readSSE(path, signal) {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     headers: { ...authHeaders(), Accept: 'text/event-stream' },
     signal,
   });
@@ -153,7 +172,7 @@ function setProgress(p) {
 }
 
 async function triggerDownload(url, fileName) {
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(apiUrl(url), { headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Download failed: ${text}`);
@@ -214,6 +233,7 @@ async function runConversion(url) {
 
 function init() {
   if (!getToken()) {
+    els.apiBaseInput.value = getApiBase();
     showAuthGate();
   } else {
     showApp();
@@ -222,7 +242,16 @@ function init() {
   els.tokenForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const t = els.tokenInput.value.trim();
-    if (!t) return;
+    const b = els.apiBaseInput.value.trim();
+    if (!t || !b) return;
+    try {
+      // Validate the URL early so the user notices typos before first call.
+      new URL(b);
+    } catch {
+      els.apiBaseInput.focus();
+      return;
+    }
+    setApiBase(b.replace(/\/$/, ''));
     setToken(t);
     els.tokenInput.value = '';
     showApp();
@@ -231,6 +260,8 @@ function init() {
 
   els.forgetToken.addEventListener('click', () => {
     clearToken();
+    clearApiBase();
+    els.apiBaseInput.value = window.location.origin;
     showAuthGate();
   });
 

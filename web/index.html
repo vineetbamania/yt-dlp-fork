@@ -56,8 +56,21 @@
 
     <section id="auth-gate" hidden>
       <h1>yt-dlp &rarr; mp3</h1>
-      <p>Paste your bearer token to use this device.</p>
+      <p>Configure this device.</p>
       <form id="token-form">
+        <label for="api-base">API base URL</label>
+        <input
+          id="api-base"
+          name="api-base"
+          type="url"
+          inputmode="url"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="https://yourmac.tailnet:8787"
+          required
+        />
         <label for="token">Token</label>
         <input
           id="token"

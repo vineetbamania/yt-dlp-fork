@@ -13,6 +13,10 @@ export const envSchema = z.object({
   // so we don't need to thread them through ConfigService.
   TLS_CERT_PATH: z.string().optional(),
   TLS_KEY_PATH: z.string().optional(),
+  // Comma-separated origin allowlist for browser CORS. Empty disables
+  // cross-origin requests entirely (same-origin still works). Used when
+  // the frontend is served from a different origin (e.g. GitHub Pages).
+  CORS_ORIGINS: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

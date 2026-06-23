@@ -35,8 +35,19 @@ async function bootstrap(): Promise<void> {
   const port = config.get('PORT', { infer: true });
   const nodeEnv = config.get('NODE_ENV', { infer: true });
 
-  // Same-origin only; the static web/ is served by this same process.
-  app.enableCors({ origin: false });
+  // CORS: same-origin (web served by the same process) works without
+  // configuration. To accept calls from another origin (e.g. a Pages-hosted
+  // frontend), set CORS_ORIGINS to a comma-separated allowlist.
+  const corsOrigins = (config.get('CORS_ORIGINS', { infer: true }) ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
+    allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    maxAge: 86_400,
+  });
 
   // Swagger UI registers raw express routes that bypass APP_GUARD, so only
   // mount it outside production. In dev you'll hit /docs on localhost.
