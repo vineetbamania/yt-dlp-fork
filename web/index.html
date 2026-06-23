@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="yt-dlp-fork" />
+    <title>yt-dlp-fork</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main id="app" hidden>
+      <header>
+        <h1>yt-dlp &rarr; mp3</h1>
+        <button id="forget-token" type="button" class="link" aria-label="Forget token">
+          forget token
+        </button>
+      </header>
+
+      <form id="convert-form">
+        <label for="url">URL</label>
+        <input
+          id="url"
+          name="url"
+          type="url"
+          inputmode="url"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="https://www.youtube.com/watch?v=..."
+          required
+        />
+        <button id="convert-btn" type="submit">Convert</button>
+      </form>
+
+      <section id="status" aria-live="polite" hidden>
+        <div class="row">
+          <span id="stage" class="stage">queued</span>
+          <span id="title" class="title"></span>
+        </div>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div id="bar" class="bar"></div>
+        </div>
+        <div class="row meta">
+          <span id="percent">0%</span>
+          <span id="speed"></span>
+          <span id="eta"></span>
+        </div>
+        <div id="error" class="error" hidden></div>
+        <button id="reset-btn" type="button" class="secondary" hidden>Convert another</button>
+      </section>
+    </main>
+
+    <section id="auth-gate" hidden>
+      <h1>yt-dlp &rarr; mp3</h1>
+      <p>Paste your bearer token to use this device.</p>
+      <form id="token-form">
+        <label for="token">Token</label>
+        <input
+          id="token"
+          name="token"
+          type="password"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          required
+        />
+        <button type="submit">Save</button>
+      </form>
+      <p class="hint">Stored in localStorage on this device only.</p>
+    </section>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
