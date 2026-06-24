@@ -1,0 +1,43 @@
+# Fly.io config for yt-dlp-fork.
+#
+# First time:   fly launch --no-deploy   (or: fly apps create <name>)
+# Set secrets:  fly secrets set AUTH_TOKEN=... YTDLP_COOKIES_B64=...
+# Deploy:       fly deploy
+#
+# TLS is terminated by Fly's edge (force_https below), so the app listens plain
+# HTTP on PORT internally — do NOT set TLS_CERT_PATH/TLS_KEY_PATH here.
+
+app = "yt-dlp-fork"          # must be globally unique — change if taken
+primary_region = "iad"       # pick the region nearest you (e.g. "bom" Mumbai, "fra", "lhr")
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  LOG_LEVEL = "info"
+  TMP_DIR = "/tmp/yt-dlp-fork"
+  PORT = "8787"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # Scale to zero when idle to minimise cost; Fly machines cold-start in ~1-2s.
+  # For always-on (no cold start), set min_machines_running = 1.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"        # public, unauthenticated health endpoint
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  # ffmpeg transcodes one track at a time for a single user; 512MB is enough.
+  # Bump to 1024 if you see OOM on large playlists.
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

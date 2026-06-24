@@ -14,6 +14,13 @@ export const envSchema = z.object({
     .string()
     .regex(/^\d{2,3}k$/, "AUDIO_BITRATE must look like '192k'")
     .default('192k'),
+  // YouTube/Spotify(-via-YouTube) get bot-challenged from datacenter IPs.
+  // Supply a Netscape cookies.txt to authenticate yt-dlp. Two ways (pick one):
+  //  - YTDLP_COOKIES_FILE: absolute path to the file (local / VM / mounted volume)
+  //  - YTDLP_COOKIES_B64:  base64 of the file's contents (e.g. a Fly.io secret;
+  //    written to disk at boot). Takes precedence over the file path if both set.
+  YTDLP_COOKIES_FILE: z.string().optional(),
+  YTDLP_COOKIES_B64: z.string().optional(),
   // Optional TLS via tailscale-issued cert. If either is unset, the
   // server listens HTTP. main.ts reads these directly from process.env
   // so we don't need to thread them through ConfigService.

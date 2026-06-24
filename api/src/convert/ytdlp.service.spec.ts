@@ -35,4 +35,16 @@ describe('buildYtDlpArgs', () => {
     expect(args[pathsIdx + 1]).toBe('/tmp/job-1');
     expect(args[args.length - 1]).toBe(opts.url); // URL is always the final positional arg
   });
+
+  it('omits --cookies when no cookies path is given', () => {
+    expect(buildYtDlpArgs(opts, '192K')).not.toContain('--cookies');
+  });
+
+  it('passes --cookies with the resolved path when provided', () => {
+    const args = buildYtDlpArgs(opts, '192K', '/data/cookies.txt');
+    const idx = args.indexOf('--cookies');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('/data/cookies.txt');
+    expect(args[args.length - 1]).toBe(opts.url); // URL still the final positional arg
+  });
 });

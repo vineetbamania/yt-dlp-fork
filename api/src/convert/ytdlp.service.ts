@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { spawn } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { Readable } from 'node:stream';
 import { YtDlpFailedError } from '../common/errors/domain.errors';
@@ -26,7 +28,11 @@ export interface RunResult {
  * rather than re-encoding afterwards — same target as AudioNormalizer, but no
  * wasteful second pass.
  */
-export function buildYtDlpArgs(options: RunOptions, audioQuality: string): string[] {
+export function buildYtDlpArgs(
+  options: RunOptions,
+  audioQuality: string,
+  cookiesPath?: string,
+): string[] {
   return [
     '--no-playlist',
     '--extract-audio',
@@ -36,6 +42,8 @@ export function buildYtDlpArgs(options: RunOptions, audioQuality: string): strin
     audioQuality, // e.g. "192K" -> CBR (a bare number would mean VBR quality)
     '--postprocessor-args',
     'ExtractAudio:-id3v2_version 3 -write_id3v1 1',
+    // Authenticate against YouTube etc. when running from a datacenter IP.
+    ...(cookiesPath ? ['--cookies', cookiesPath] : []),
     '--no-color',
     '--newline',
     '--restrict-filenames',
@@ -51,18 +59,39 @@ export function buildYtDlpArgs(options: RunOptions, audioQuality: string): strin
   ];
 }
 
+/**
+ * Resolve the yt-dlp cookies file path from config. If cookies are supplied as
+ * base64 (e.g. a Fly.io secret), decode them to a file under TMP_DIR once at
+ * startup; otherwise use the explicit file path. Returns undefined when neither
+ * is set (no cookies — fine for JioSaavn/Gaana/SoundCloud).
+ */
+export function resolveCookiesPath(config: ConfigService<Env, true>): string | undefined {
+  const b64 = config.get('YTDLP_COOKIES_B64', { infer: true });
+  if (b64) {
+    const dest = join(resolve(config.get('TMP_DIR', { infer: true })), 'yt-dlp-cookies.txt');
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, Buffer.from(b64, 'base64'), { mode: 0o600 });
+    return dest;
+  }
+  return config.get('YTDLP_COOKIES_FILE', { infer: true });
+}
+
 @Injectable()
 export class YtDlpService {
   private readonly logger = new Logger(YtDlpService.name);
   /** yt-dlp `--audio-quality` value (uppercased bitrate, e.g. "192K"). */
   private readonly audioQuality: string;
+  /** Optional cookies.txt path for authenticated extraction (YouTube etc.). */
+  private readonly cookiesPath: string | undefined;
 
   constructor(config: ConfigService<Env, true>) {
     this.audioQuality = config.get('AUDIO_BITRATE', { infer: true }).toUpperCase();
+    this.cookiesPath = resolveCookiesPath(config);
+    if (this.cookiesPath) this.logger.log(`Using yt-dlp cookies: ${this.cookiesPath}`);
   }
 
   run(options: RunOptions): Promise<RunResult> {
-    const args = buildYtDlpArgs(options, this.audioQuality);
+    const args = buildYtDlpArgs(options, this.audioQuality, this.cookiesPath);
 
     this.logger.log(`spawning: yt-dlp <flags> ${options.url}`);
 
