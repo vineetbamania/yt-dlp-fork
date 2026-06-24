@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import type { Readable } from 'node:stream';
 import { YtDlpFailedError } from '../common/errors/domain.errors';
+import type { Env } from '../config/env';
 import { parseLine, type ProgressUpdate } from './ytdlp-progress.parser';
 
 export interface RunOptions {
@@ -18,29 +20,49 @@ export interface RunResult {
   title?: string;
 }
 
+/**
+ * Build the yt-dlp argv. yt-dlp does the MP3 conversion itself, so we make it
+ * emit the final output directly (CBR + ID3v1/v2.3 for broad compatibility)
+ * rather than re-encoding afterwards — same target as AudioNormalizer, but no
+ * wasteful second pass.
+ */
+export function buildYtDlpArgs(options: RunOptions, audioQuality: string): string[] {
+  return [
+    '--no-playlist',
+    '--extract-audio',
+    '--audio-format',
+    'mp3',
+    '--audio-quality',
+    audioQuality, // e.g. "192K" -> CBR (a bare number would mean VBR quality)
+    '--postprocessor-args',
+    'ExtractAudio:-id3v2_version 3 -write_id3v1 1',
+    '--no-color',
+    '--newline',
+    '--restrict-filenames',
+    '--print',
+    'before_dl:[ytfork:title] %(title)s',
+    '--print',
+    'after_move:[ytfork:final] %(filepath)s',
+    '-o',
+    '%(id)s.%(ext)s',
+    '--paths',
+    options.outputDir,
+    options.url,
+  ];
+}
+
 @Injectable()
 export class YtDlpService {
   private readonly logger = new Logger(YtDlpService.name);
+  /** yt-dlp `--audio-quality` value (uppercased bitrate, e.g. "192K"). */
+  private readonly audioQuality: string;
+
+  constructor(config: ConfigService<Env, true>) {
+    this.audioQuality = config.get('AUDIO_BITRATE', { infer: true }).toUpperCase();
+  }
 
   run(options: RunOptions): Promise<RunResult> {
-    const args = [
-      '--no-playlist',
-      '--extract-audio',
-      '--audio-format',
-      'mp3',
-      '--no-color',
-      '--newline',
-      '--restrict-filenames',
-      '--print',
-      'before_dl:[ytfork:title] %(title)s',
-      '--print',
-      'after_move:[ytfork:final] %(filepath)s',
-      '-o',
-      '%(id)s.%(ext)s',
-      '--paths',
-      options.outputDir,
-      options.url,
-    ];
+    const args = buildYtDlpArgs(options, this.audioQuality);
 
     this.logger.log(`spawning: yt-dlp <flags> ${options.url}`);
 
