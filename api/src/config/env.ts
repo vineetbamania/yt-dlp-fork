@@ -8,6 +8,12 @@ export const envSchema = z.object({
     .min(32, 'AUTH_TOKEN must be at least 32 chars. Generate with: openssl rand -hex 32'),
   TMP_DIR: z.string().min(1).default('./tmp'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  // Target MP3 bitrate for transcoded sources (e.g. JioSaavn AAC -> MP3).
+  // CBR is intentional for broad player compatibility.
+  AUDIO_BITRATE: z
+    .string()
+    .regex(/^\d{2,3}k$/, "AUDIO_BITRATE must look like '192k'")
+    .default('192k'),
   // Optional TLS via tailscale-issued cert. If either is unset, the
   // server listens HTTP. main.ts reads these directly from process.env
   // so we don't need to thread them through ConfigService.

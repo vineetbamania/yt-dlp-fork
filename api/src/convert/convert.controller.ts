@@ -4,7 +4,7 @@ import { createReadStream } from 'node:fs';
 import { basename } from 'node:path';
 import { map, type Observable } from 'rxjs';
 import type { Response } from 'express';
-import { JobNotReadyError, YtDlpFailedError } from '../common/errors/domain.errors';
+import { DomainError, JobNotReadyError, YtDlpFailedError } from '../common/errors/domain.errors';
 import { TempDirService } from '../common/temp-dir.service';
 import { CreateConvertDto } from './dto/create-convert.dto';
 import { ApiErrorDto, CreateConvertResponseDto, JobSnapshotDto } from './dto/responses.dto';
@@ -48,7 +48,7 @@ export class ConvertController {
     const job = this.jobs.create(url.href);
 
     void this.runJob(job).catch((err) => {
-      const code = err instanceof YtDlpFailedError ? err.code : 'INTERNAL_ERROR';
+      const code = err instanceof DomainError ? err.code : 'INTERNAL_ERROR';
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Job ${job.id} failed: ${message}`);
       this.jobs.markFailed(job.id, { code, message });

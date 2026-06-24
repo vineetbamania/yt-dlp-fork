@@ -1,4 +1,11 @@
-export type Stage = 'download' | 'extract_audio' | 'metadata' | 'video_convert' | 'unknown';
+export type Stage =
+  | 'download'
+  | 'extract_audio'
+  | 'metadata'
+  | 'video_convert'
+  | 'transcode' // ffmpeg re-encode to MP3 (e.g. JioSaavn AAC -> MP3)
+  | 'match' // resolving metadata to an audio source (e.g. Spotify -> YouTube)
+  | 'unknown';
 
 export interface ProgressUpdate {
   stage: Stage;

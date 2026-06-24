@@ -2,7 +2,7 @@
 
 Personal YouTube/media → MP3 tool. NestJS API + plain HTML/CSS/JS frontend, served as one process. **Tailscale-only — never expose to the public internet.**
 
-End goal: MP3s land on iPhone via Safari → Files, then sync to microSD for a Nokia 3210 4G.
+End goal: MP3s of songs/playlists land on your iPhone via Safari → Files, ready to use anywhere.
 
 ---
 

@@ -33,3 +33,10 @@ export class YtDlpFailedError extends DomainError {
     super('YTDLP_FAILED', message, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 }
+
+/** A source-specific extractor (JioSaavn, Gaana, Spotify, ffmpeg) failed. */
+export class ExtractionFailedError extends DomainError {
+  constructor(message: string) {
+    super('EXTRACTION_FAILED', message, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+}
