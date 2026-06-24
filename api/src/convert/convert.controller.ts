@@ -8,10 +8,10 @@ import { JobNotReadyError, YtDlpFailedError } from '../common/errors/domain.erro
 import { TempDirService } from '../common/temp-dir.service';
 import { CreateConvertDto } from './dto/create-convert.dto';
 import { ApiErrorDto, CreateConvertResponseDto, JobSnapshotDto } from './dto/responses.dto';
+import { SourceResolver } from './extractors/source-resolver';
 import { JobsService } from './jobs.service';
 import type { Job, JobSnapshot } from './types';
 import { validateUrl } from './url-validator';
-import { YtDlpService } from './ytdlp.service';
 
 interface SseMessageEvent {
   type: string;
@@ -33,7 +33,7 @@ export class ConvertController {
 
   constructor(
     private readonly jobs: JobsService,
-    private readonly ytdlp: YtDlpService,
+    private readonly resolver: SourceResolver,
     private readonly tempDirs: TempDirService,
   ) {}
 
@@ -125,15 +125,23 @@ export class ConvertController {
     this.jobs.attachTempDir(job.id, tempDir);
     this.jobs.markRunning(job.id);
 
-    const result = await this.ytdlp.run({
+    const extractor = this.resolver.resolve(job.url);
+    const result = await extractor.run({
       url: job.url,
       outputDir: tempDir,
+      format: 'mp3',
+      playlist: false, // M0: single track (playlist support lands in a later milestone)
       onTitle: (title) => this.jobs.setTitle(job.id, title),
       onProgress: (update) => this.jobs.updateProgress(job.id, update),
     });
 
-    const fileName = basename(result.filePath);
-    this.jobs.markDone(job.id, result.filePath, fileName);
+    // M0: single-track only. Playlists (result.tracks.length > 1) handled later.
+    const track = result.tracks[0];
+    if (!track) {
+      throw new YtDlpFailedError('Extractor produced no output file');
+    }
+    const fileName = basename(track.filePath);
+    this.jobs.markDone(job.id, track.filePath, fileName);
   }
 }
 
